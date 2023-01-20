@@ -1,0 +1,6 @@
+__pycache__
+_build
+Kamek
+bin
+*.o
+*.o.d

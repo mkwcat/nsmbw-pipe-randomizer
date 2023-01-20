@@ -1,0 +1,28 @@
+<wiidisc version="1" shiftfiles="true" root="/nsmbw-pipe-randomizer" log="true">
+	<id game="SMN">
+		<region type="P"/>
+		<region type="E"/>
+		<region type="J"/>
+		<region type="K"/>
+		<region type="W"/>
+	</id>
+	<options>
+		<section name="NSMBW Pipe Randomizer">
+			<option name="Pipe Randomizer" id="nsmbw-pipe-randomizer" default="1">
+				<choice name="Enabled"><patch id="nsmbw-pipe-randomizer"/></choice>
+			</option>
+		</section>
+	</options>
+	<patch id="nsmbw-pipe-randomizer">
+		<folder external="Code" disc="/Code" create="true"/>
+		<folder external="Stage" disc="/Stage"/>
+
+		<!-- Kamek Loader -->
+		<memory offset="0x80001900" valuefile="Code/loader.bin" />
+		<!-- EU --> <memory offset='0x80328478' value='800023C8' original='8015BC60'/>
+		<!-- US --> <memory offset='0x80328130' value='800023C8' original='8015BB20'/>
+		<!-- JP --> <memory offset='0x80327E98' value='800023C8' original='8015B930'/>
+		<!-- KR --> <memory offset='0x80334E60' value='800023C8' original='8015C060'/>
+		<!-- TW --> <memory offset='0x80333218' value='800023C8' original='8015C060'/>
+	</patch>
+</wiidisc>

@@ -1,0 +1,21 @@
+{
+  "base-file": "nsmbw.rvz",
+  "display-name": "NSMBW Pipe Randomizer",
+  "riivolution": {
+    "patches": [
+      {
+        "options": [
+          {
+            "choice": 1,
+            "option-id": "nsmbw-pipe-randomizer",
+            "section-name": "NSMBW Pipe Randomizer"
+          }
+        ],
+        "root": "nsmbw-pipe-randomizer",
+        "xml": "nsmbw-pipe-randomizer\/riivolution\/nsmbw-pipe-randomizer.xml"
+      }
+    ]
+  },
+  "type": "dolphin-game-mod-descriptor",
+  "version": 1
+}
