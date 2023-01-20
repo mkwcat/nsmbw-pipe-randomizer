@@ -1,0 +1,8 @@
+__pycache__
+build
+Kamek/Kamek.*
+Kamek/cw
+bin
+*.o
+*.o.d
+output/nsmbw-pipe-randomizer/StreamCache/*.brstm

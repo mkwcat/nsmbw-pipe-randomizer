@@ -1,0 +1,55 @@
+<wiidisc version="1" shiftfiles="true" root="/nsmbw-pipe-randomizer" log="true">
+	<id game="SMN">
+		<region type="P"/>
+		<region type="E"/>
+		<region type="J"/>
+		<region type="K"/>
+		<region type="W"/>
+	</id>
+	<options>
+		<section name="Pipe Randomizer">
+			<option name="Pipe Randomizer" id="nsmbw-pipe-randomizer" default="1">
+				<choice name="Enabled"><patch id="nsmbw-pipe-randomizer"/></choice>
+			</option>
+			<option name="Randomize on..." id="nsmbw-pipe-rng-setting" default="1">
+				<choice name="Starting the Game"><patch id="nsmbw-pipe-rng-boot"/></choice>
+				<choice name="Entering a Course"><patch id="nsmbw-pipe-rng-course"/></choice>
+				<choice name="Entering a Pipe"><patch id="nsmbw-pipe-rng-always"/></choice>
+				<choice name="Use seed.txt"><patch id="nsmbw-pipe-rng-file"/></choice>
+			</option>
+		</section>
+	</options>
+	<patch id="nsmbw-pipe-randomizer">
+		<folder external="Code" disc="/Code" create="true"/>
+		<folder external="Stage" disc="/Stage"/>
+		<folder external="StreamCache" disc="/Sound/stream"/>
+		<folder external="WorldMap" disc="/WorldMap"/>
+		<file external="Layout/openingTitle.arc" disc="/CN/Layout/openingTitle/openingTitle.arc"/>
+		<file external="Layout/openingTitle.arc" disc="/EU/Layout/openingTitle/openingTitle.arc"/>
+		<file external="Layout/openingTitle.arc" disc="/JP/Layout/openingTitle/openingTitle.arc"/>
+		<file external="Layout/openingTitle.arc" disc="/KR/Layout/openingTitle/openingTitle.arc"/>
+		<file external="Layout/openingTitle.arc" disc="/TW/Layout/openingTitle/openingTitle.arc"/>
+		<file external="Layout/openingTitle.arc" disc="/US/Layout/openingTitle/openingTitle.arc"/>
+		<file external="seed.txt" disc="/seed.txt" create="true"/>
+
+		<!-- Kamek Loader -->
+		<memory offset="0x80001900" valuefile="Code/loader.bin" />
+		<!-- EU --> <memory offset='0x80328478' value='800023C8' original='8015BC60'/>
+		<!-- US --> <memory offset='0x80328130' value='800023C8' original='8015BB20'/>
+		<!-- JP --> <memory offset='0x80327E98' value='800023C8' original='8015B930'/>
+		<!-- KR --> <memory offset='0x80334E60' value='800023C8' original='8015C060'/>
+		<!-- TW --> <memory offset='0x80333218' value='800023C8' original='8015C060'/>
+	</patch>
+	<patch id="nsmbw-pipe-rng-boot">
+		<memory offset='0x80004028' value='00000000'/>
+	</patch>
+	<patch id="nsmbw-pipe-rng-course">
+		<memory offset='0x80004028' value='00000001'/>
+	</patch>
+	<patch id="nsmbw-pipe-rng-always">
+		<memory offset='0x80004028' value='00000002'/>
+	</patch>
+	<patch id="nsmbw-pipe-rng-file">
+		<memory offset='0x80004028' value='00000003'/>
+	</patch>
+</wiidisc>
