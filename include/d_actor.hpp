@@ -5,5 +5,5 @@
 class dActor_c
 {
 public:
-    static u32 mExecStopReq;
+    static u8 mExecStopReq;
 };
