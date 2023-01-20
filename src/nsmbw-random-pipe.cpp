@@ -1,8 +1,10 @@
+#include "SndSceneMgr.hpp"
 #include "d_actor.hpp"
 #include "d_fader.hpp"
 #include "d_game_com.hpp"
 #include "d_info.hpp"
 #include "d_next.hpp"
+#include "d_pl_base.hpp"
 #include "d_save_mng.hpp"
 #include "d_sc_crsin.hpp"
 #include "d_sc_stage.hpp"
@@ -52,6 +54,8 @@ void MakeEntryTable(u32 seed)
     }
 }
 
+u32 g_playerStarTimer[4] = {0, 0, 0, 0};
+
 void GoToNewStage(u32 index, dNext_c* next)
 {
     dActor_c::mExecStopReq |= 0xF;
@@ -61,6 +65,19 @@ void GoToNewStage(u32 index, dNext_c* next)
         dFader_c::setFader(dFader_c::unk_fade_1);
     } else {
         dFader_c::setFader(next->fadeType);
+    }
+
+    dScCrsin_c::m_isDispOff = true;
+    dScStage_c::m_exitMode = 4;
+
+    // Save player star timer
+    for (u32 i = 0; i < 4; i++) {
+        g_playerStarTimer[i] = 0;
+
+        daPlBase_c* ply = daPyMng_c::getPlayer(i);
+        if (ply) {
+            g_playerStarTimer[i] = ply->starTimer;
+        }
     }
 
     u32 entry = 0;
@@ -92,9 +109,6 @@ void GoToNewStage(u32 index, dNext_c* next)
     sginfo.level1 = (PipeEntryList[entry] >> 16) & 0xFF;
     sginfo.world2 = (PipeEntryList[entry] >> 24) & 0xFF;
     sginfo.level2 = (PipeEntryList[entry] >> 16) & 0xFF;
-
-    dScCrsin_c::m_isDispOff = true;
-    dScStage_c::m_exitMode = 4;
 
     dInfo_c::instance()->startGame(sginfo);
 }
@@ -249,4 +263,23 @@ kmCallDefCpp(0x80AAA364, void, int coin, int state)
     dSaveMng_c::instance()->getMj2dGame(-1)->setCollectCoin(
       dInfo_c::m_startGameInfo.world2, dInfo_c::m_startGameInfo.level2,
       1 << coin);
+}
+
+kmBranchDefCpp(0x8005F4CC, 0, void, void)
+{
+    // Restore player star timer
+    for (u32 i = 0; i < 4; i++) {
+        if (g_playerStarTimer[i] == 0)
+            continue;
+
+        daPlBase_c* ply = daPyMng_c::getPlayer(i);
+        if (ply) {
+            ply->beginStar(1, g_playerStarTimer[i]);
+        }
+
+        g_playerStarTimer[i] = 0;
+    }
+
+    // Stop P-Switch music
+    SndSceneMgr::instance()->stopBgmFlag(8);
 }

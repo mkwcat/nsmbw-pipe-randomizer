@@ -26,3 +26,7 @@ m_PrevSceneNo__9dScWMap_c=0x80429356
 m_WorldNo__9dScWMap_c=0x8042A52D
 m_SceneNo__9dScWMap_c=0x8042A52E
 WM_CheckIfWorldOpen__Fi=0x800FB3E0
+setPlayer__9daPyMng_cFiP7dAcPy_c=0x8005F8C0
+getPlayer__9daPyMng_cFi=0x8005F900
+sInstance__11SndSceneMgr=0x8042A788
+stopBgmFlag__11SndSceneMgrFUi=0x8019BE60
