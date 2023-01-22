@@ -1,0 +1,1 @@
+Kamek\Kamek.exe _build\nsmbw-random-pipe.o -dynamic -versions=address-map.txt -externals=externals.txt -output-kamek=riivo/nsmbw-pipe-randomizer/Code/E2.bin -select-version=E2

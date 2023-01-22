@@ -13,17 +13,14 @@
 #include "pipe_entry_list.h"
 #include <kamek.h>
 
-#if 0
-kmBranchDefCpp(0x800D026C, 0x800D0340, void, void)
-#endif
-
 enum RandBase {
-    RAND_BASE_SAVE, // Randomize on creating a file
-    RAND_BASE_COURSE, // Randomize on entering a course
-    RAND_BASE_ALWAYS, // Randomize on entering a pipe
+    RAND_BASE_BOOT = 0, // Randomize on starting the game
+    RAND_BASE_COURSE = 1, // Randomize on entering a course
+    RAND_BASE_ALWAYS = 2, // Randomize on entering a pipe
+    RAND_BASE_FILE = 3, // Use seed.txt
 };
 
-RandBase g_randBase = RAND_BASE_SAVE;
+RandBase g_randBase = RAND_BASE_BOOT;
 u16 g_entryLookup[PipeEntryCount];
 
 bool g_madeEntryTable = false;
@@ -52,6 +49,25 @@ void MakeEntryTable(u32 seed)
 
         ptrOpenEntries += 1;
     }
+
+    // Debug print the final boss location
+
+    u32 entry = g_entryLookup[537];
+    dInfo_c::StartGameInfo_s sginfo;
+    sginfo.world1 = (PipeEntryList[entry] >> 24) & 0xFF;
+    sginfo.level1 = (PipeEntryList[entry] >> 16) & 0xFF;
+    sginfo.entrance = PipeEntryList[entry] & 0xFF;
+    sginfo.area = (PipeEntryList[entry] >> 8) & 0xFF;
+    OSReport("final boss 1: %d-%d area %d ent %d\n", sginfo.world1 + 1,
+             sginfo.level1 + 1, sginfo.area + 1, sginfo.entrance);
+
+    entry = g_entryLookup[538];
+    sginfo.world1 = (PipeEntryList[entry] >> 24) & 0xFF;
+    sginfo.level1 = (PipeEntryList[entry] >> 16) & 0xFF;
+    sginfo.entrance = PipeEntryList[entry] & 0xFF;
+    sginfo.area = (PipeEntryList[entry] >> 8) & 0xFF;
+    OSReport("final boss 2: %d-%d area %d ent %d\n", sginfo.world1 + 1,
+             sginfo.level1 + 1, sginfo.area + 1, sginfo.entrance);
 }
 
 u32 g_playerStarTimer[4] = {0, 0, 0, 0};
@@ -83,8 +99,7 @@ void GoToNewStage(u32 index, dNext_c* next)
     u32 entry = 0;
 
     switch (g_randBase) {
-    case RAND_BASE_SAVE:
-    case RAND_BASE_COURSE:
+    default:
         // Temporary
         if (!g_madeEntryTable) {
             MakeEntryTable(dGameCom::getRandom(1024));
@@ -236,17 +251,24 @@ kmCallDefCpp(0x808DF33C, void, u32 wm)
     WM_PathInit(wm);
 }
 
-// This will disable the airship cutscene when you enter a new world
-kmCallDefCpp(0x80914924, bool, int world)
+kmCallDefCpp(0x808FB584, void, dMj2dGame_c* save)
 {
-    extern bool WM_CheckIfWorldOpen(int world); // 0x800FB3E0
-
-    if (world == 0) {
-        return WM_CheckIfWorldOpen(world);
-    }
-
-    return true;
+    // Unlock all worlds from the start
+    save->onWorldDataFlag(0, 1);
+    save->onWorldDataFlag(1, 1);
+    save->onWorldDataFlag(2, 1);
+    save->onWorldDataFlag(3, 1);
+    save->onWorldDataFlag(4, 1);
+    save->onWorldDataFlag(5, 1);
+    save->onWorldDataFlag(6, 1);
+    save->onWorldDataFlag(7, 1);
+    save->onWorldDataFlag(8, 1);
 }
+
+// Always can save patches
+
+kmWrite32(0x8077AA7C, 0x60000000); // message
+kmWrite32(0x8092FD00, 0x38000002); // button behavior
 
 // Star Coin stuff!
 
@@ -283,3 +305,10 @@ kmBranchDefCpp(0x8005F4CC, 0, void, void)
     // Stop P-Switch music
     SndSceneMgr::instance()->stopBgmFlag(8);
 }
+
+// Skip opening cutscene
+kmWrite32(0x809191C4, 0x48000018);
+
+// Skip title screen movies
+kmWrite32(0x80781FB8, 0x60000000);
+kmWrite32(0x80781FBC, 0x38600000);

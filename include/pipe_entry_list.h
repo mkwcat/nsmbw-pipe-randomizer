@@ -13,7 +13,7 @@ static const u32 PipeEntryList[] = {
 
   // 01-02
   //// Area 1
-  ENT(1, 2, 1, 1), ENT(1, 2, 1, 5),
+  ENT(1, 2, 1, 1),
   //// Area 2
   ENT(1, 2, 2, 0), ENT(1, 2, 2, 1), ENT(1, 2, 2, 2), ENT(1, 2, 2, 3),
   ENT(1, 2, 2, 4), ENT(1, 2, 2, 5), ENT(1, 2, 2, 6), ENT(1, 2, 2, 8),
@@ -26,7 +26,7 @@ static const u32 PipeEntryList[] = {
   ENT(1, 3, 1, 2), ENT(1, 3, 1, 3), ENT(1, 3, 1, 4), ENT(1, 3, 1, 6),
   ENT(1, 3, 1, 100), ENT(1, 3, 1, 101), ENT(1, 3, 1, 102), ENT(1, 3, 1, 103),
   ENT(1, 3, 1, 104), ENT(1, 3, 1, 105), ENT(1, 3, 1, 106), ENT(1, 3, 1, 107),
-  ENT(1, 3, 1, 108), ENT(1, 3, 1, 109),
+  ENT(1, 3, 1, 108),
   //// Area 2
   ENT(1, 3, 2, 0), ENT(1, 3, 2, 1), ENT(1, 3, 2, 2), ENT(1, 3, 2, 3),
   //// Area 3
@@ -221,10 +221,9 @@ static const u32 PipeEntryList[] = {
   ENT(4, 4, 2, 120), ENT(4, 4, 2, 121), ENT(4, 4, 2, 122), ENT(4, 4, 2, 123),
   ENT(4, 4, 2, 124), ENT(4, 4, 2, 125), ENT(4, 4, 2, 126), ENT(4, 4, 2, 127),
   ENT(4, 4, 2, 128), ENT(4, 4, 2, 129), ENT(4, 4, 2, 130), ENT(4, 4, 2, 131),
-  ENT(4, 4, 2, 132), ENT(4, 4, 2, 133), ENT(4, 4, 2, 134), ENT(4, 4, 2, 135),
-  ENT(4, 4, 2, 136), ENT(4, 4, 2, 137), ENT(4, 4, 2, 138), ENT(4, 4, 2, 139),
-  ENT(4, 4, 2, 140), ENT(4, 4, 2, 141), ENT(4, 4, 2, 142), ENT(4, 4, 2, 143),
-  ENT(4, 4, 2, 144),
+  ENT(4, 4, 2, 132), ENT(4, 4, 2, 133), ENT(4, 4, 2, 135), ENT(4, 4, 2, 136),
+  ENT(4, 4, 2, 137), ENT(4, 4, 2, 138), ENT(4, 4, 2, 139), ENT(4, 4, 2, 140),
+  ENT(4, 4, 2, 141), ENT(4, 4, 2, 142), ENT(4, 4, 2, 143), ENT(4, 4, 2, 144),
 
   // 04-05
   //// Area 1
@@ -534,3 +533,13 @@ static const u32 PipeEntryList[] = {
 };
 
 const u32 PipeEntryCount = sizeof(PipeEntryList) / 4;
+
+static const u32 PipeExitList[] = {
+  // WORLD 1
+
+  // 01-02
+  //// Area 1
+  ENT(1, 2, 1, 5),
+};
+
+const u32 PipeExitCount = sizeof(PipeExitList) / 4;
