@@ -57,7 +57,7 @@ void MakeEntryTable(u32 seed)
     sginfo.world1 = (PipeEntryList[entry] >> 24) & 0xFF;
     sginfo.level1 = (PipeEntryList[entry] >> 16) & 0xFF;
     sginfo.entrance = PipeEntryList[entry] & 0xFF;
-    sginfo.area = (PipeEntryList[entry] >> 8) & 0xFF;
+    sginfo.area = (PipeEntryList[entry] >> 8) & 0x0F;
     OSReport("final boss 1: %d-%d area %d ent %d\n", sginfo.world1 + 1,
              sginfo.level1 + 1, sginfo.area + 1, sginfo.entrance);
 
@@ -65,7 +65,7 @@ void MakeEntryTable(u32 seed)
     sginfo.world1 = (PipeEntryList[entry] >> 24) & 0xFF;
     sginfo.level1 = (PipeEntryList[entry] >> 16) & 0xFF;
     sginfo.entrance = PipeEntryList[entry] & 0xFF;
-    sginfo.area = (PipeEntryList[entry] >> 8) & 0xFF;
+    sginfo.area = (PipeEntryList[entry] >> 8) & 0x0F;
     OSReport("final boss 2: %d-%d area %d ent %d\n", sginfo.world1 + 1,
              sginfo.level1 + 1, sginfo.area + 1, sginfo.entrance);
 }
@@ -113,17 +113,20 @@ void GoToNewStage(u32 index, dNext_c* next)
         break;
     }
 
+    // u32 entData = PipeEntryList[entry];
+    u32 entData = ENT(1, 2, 2, 9);
+
     dInfo_c::StartGameInfo_s sginfo;
     sginfo.unk_0 = 0;
     sginfo.replayType = 0;
-    sginfo.entrance = PipeEntryList[entry] & 0xFF;
-    sginfo.area = (PipeEntryList[entry] >> 8) & 0xFF;
+    sginfo.entrance = entData & 0xFF;
+    sginfo.area = (entData >> 8) & 0x0F;
     sginfo.unk_7 = 0;
     sginfo.purpose = 0;
-    sginfo.world1 = (PipeEntryList[entry] >> 24) & 0xFF;
-    sginfo.level1 = (PipeEntryList[entry] >> 16) & 0xFF;
-    sginfo.world2 = (PipeEntryList[entry] >> 24) & 0xFF;
-    sginfo.level2 = (PipeEntryList[entry] >> 16) & 0xFF;
+    sginfo.world1 = (entData >> 24) & 0xFF;
+    sginfo.level1 = (entData >> 16) & 0xFF;
+    sginfo.world2 = (entData >> 24) & 0xFF;
+    sginfo.level2 = (entData >> 16) & 0xFF;
 
     dInfo_c::instance()->startGame(sginfo);
 }
@@ -138,7 +141,7 @@ kmBranchDefCpp(0x800D03B8, 0, void, dNext_c* next)
 
     u32 entData = (world << 24) | (stage << 16) | (area << 8) | entrance;
     for (u32 i = 0; i < PipeEntryCount; i++) {
-        if (PipeEntryList[i] == entData) {
+        if ((PipeEntryList[i] & 0xFFFF0FFF) == entData) {
             // This is one of our entrances!
             GoToNewStage(i, next);
             return;
