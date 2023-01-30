@@ -25,6 +25,7 @@ u16 g_entryLookup[PipeEntryCount];
 
 bool g_madeEntryTable = false;
 
+#if 0
 void MakeEntryTable(u32 seed)
 {
     u16 openEntries[PipeEntryCount];
@@ -69,6 +70,168 @@ void MakeEntryTable(u32 seed)
     OSReport("final boss 2: %d-%d area %d ent %d\n", sginfo.world1 + 1,
              sginfo.level1 + 1, sginfo.area + 1, sginfo.entrance);
 }
+#endif
+
+class EntranceSorter
+{
+public:
+    EntranceSorter(u16* lookupTable, u32 seed)
+    {
+        m_entryLookup = lookupTable;
+        m_seed = seed;
+
+        m_excEntIndex = 0;
+        m_excEntCount = 0;
+        m_curGroupEnd = 0;
+
+        m_entCount = 0;
+        m_ptrEntList = m_entList;
+
+        for (u32 i = 0; i < PipeEntryCount; i++) {
+            // Write index and copy group flags
+            m_entList[m_entCount++] = i | ((PipeEntryList[i] & 0xF000) << 16);
+
+            // If the entrance is by itself in a group then move it to exclusive
+            if ((m_entList[m_entCount - 1] >> 28) == 0x3) {
+                MoveToExclusive(m_entCount - 1);
+            }
+
+            m_entryLookup[i] = 0;
+        }
+    }
+
+    void CreateLookupTable()
+    {
+        while (m_entCount > 1) {
+            u32 ent1 = SelectEntrance1() & 0x0FFFFFFF;
+            u32 ent2 = SelectEntrance2() & 0x0FFFFFFF;
+
+            m_entryLookup[ent1] = ent2;
+            m_entryLookup[ent2] = ent1;
+        }
+    }
+
+private:
+    u32 m_curGroupEnd;
+    u32 m_excEntIndex;
+
+    u32 SelectEntrance1()
+    {
+        // Exclusive entrances always go first
+        if (m_excEntCount != 0) {
+            m_excEntCount--;
+            return m_excEntList[m_excEntIndex++];
+        }
+
+        // Reset exclusive index
+        m_excEntIndex = 0;
+
+        if (m_curGroupEnd == 0) {
+            // Not in a group
+            u32 val = m_ptrEntList[0];
+            if ((val >> 28) != 0x1) {
+                RemoveEntrance(0);
+                return val;
+            }
+
+            // Start of a group, let's find the end
+            for (u32 i = 0; i < m_entCount; i++) {
+                if ((m_ptrEntList[i] >> 28) == 0x2) {
+                    m_curGroupEnd = i + 1;
+                    break;
+                }
+            }
+
+            // Then fall through to the group code
+        }
+
+        // Randomly select an entrance within the group. This will make sure
+        // that which entry ends up exclusive will be evenly distributed.
+        u32 i = getRandomFromSeed(&m_seed, m_curGroupEnd);
+        u32 val = m_ptrEntList[i];
+        RemoveEntrance(i);
+
+        return val;
+    }
+
+    u32 SelectEntrance2()
+    {
+        // Entrance 2 cannot be an exclusive entrance
+        u32 i = getRandomFromSeed(&m_seed, m_entCount);
+        u32 val = m_ptrEntList[i];
+        RemoveEntrance(i);
+
+        return val;
+    }
+
+    void MoveToExclusive(u32 idx)
+    {
+        u32 val = m_ptrEntList[idx];
+        Remove(idx);
+        m_excEntList[m_excEntIndex + m_excEntCount] = val;
+        m_excEntCount++;
+    }
+
+    void Remove(u32 idx)
+    {
+        if (idx < m_curGroupEnd) {
+            m_curGroupEnd--;
+        }
+
+        if (idx == 0) {
+            m_ptrEntList += 1;
+            return;
+        }
+
+        if (idx == (m_entCount - 1)) {
+            m_entCount--;
+            return;
+        }
+
+        memmove(m_ptrEntList + idx, m_ptrEntList + idx + 1,
+                (m_entCount - idx - 1) * sizeof(u32));
+        m_entCount -= 1;
+    }
+
+    void RemoveEntrance(u32 idx)
+    {
+        u32 val = m_ptrEntList[idx];
+
+        if ((val >> 28) == 0x1) {
+            // Start of group
+            m_ptrEntList[idx + 1] |= 0x1 << 28;
+            if ((m_ptrEntList[idx + 1] >> 28) == 0x3) {
+                MoveToExclusive(idx + 1);
+            }
+        }
+
+        if ((val >> 28) == 0x2) {
+            // End of group
+            m_ptrEntList[idx - 1] |= 0x2 << 28;
+            if ((m_ptrEntList[idx - 1] >> 28) == 0x3) {
+                MoveToExclusive(idx - 1);
+                idx--;
+            }
+        }
+
+        Remove(idx);
+    }
+
+    u32 m_entList[PipeEntryCount];
+    u32 m_entCount;
+    u32* m_ptrEntList;
+    u32 m_excEntList[PipeEntryCount];
+    u32 m_excEntCount;
+
+    u16* m_entryLookup;
+    u32 m_seed;
+};
+
+void MakeEntryTable(u32 seed)
+{
+    EntranceSorter sorter(g_entryLookup, seed);
+    sorter.CreateLookupTable();
+}
 
 u32 g_playerStarTimer[4] = {0, 0, 0, 0};
 
@@ -102,7 +265,8 @@ void GoToNewStage(u32 index, dNext_c* next)
     default:
         // Temporary
         if (!g_madeEntryTable) {
-            MakeEntryTable(dGameCom::getRandom(1024));
+            // MakeEntryTable(dGameCom::getRandom(1024));
+            MakeEntryTable(1);
             g_madeEntryTable = true;
         }
         entry = g_entryLookup[index];
@@ -113,8 +277,7 @@ void GoToNewStage(u32 index, dNext_c* next)
         break;
     }
 
-    // u32 entData = PipeEntryList[entry];
-    u32 entData = ENT(1, 2, 2, 9);
+    u32 entData = PipeEntryList[entry];
 
     dInfo_c::StartGameInfo_s sginfo;
     sginfo.unk_0 = 0;
