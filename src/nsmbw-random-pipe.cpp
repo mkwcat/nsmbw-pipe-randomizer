@@ -102,12 +102,37 @@ public:
 
     void CreateLookupTable()
     {
-        while (m_entCount > 1) {
-            u32 ent1 = SelectEntrance1() & 0x0FFFFFFF;
+        while (m_entCount > 0) {
+            u32 ent1 = SelectEntrance1();
             u32 ent2 = SelectEntrance2() & 0x0FFFFFFF;
 
+            bool exc = (ent1 >> 28) == 0x3;
+            ent1 &= 0x0FFFFFFF;
             m_entryLookup[ent1] = ent2;
             m_entryLookup[ent2] = ent1;
+
+            if (exc) {
+                dInfo_c::StartGameInfo_s sginfo;
+                dInfo_c::StartGameInfo_s sginfo2;
+
+                u32 entry = ent1;
+                sginfo.world1 = (PipeEntryList[entry] >> 24) & 0xFF;
+                sginfo.level1 = (PipeEntryList[entry] >> 16) & 0xFF;
+                sginfo.entrance = PipeEntryList[entry] & 0xFF;
+                sginfo.area = (PipeEntryList[entry] >> 8) & 0x0F;
+
+                entry = ent2;
+                sginfo2.world1 = (PipeEntryList[entry] >> 24) & 0xFF;
+                sginfo2.level1 = (PipeEntryList[entry] >> 16) & 0xFF;
+                sginfo2.entrance = PipeEntryList[entry] & 0xFF;
+                sginfo2.area = (PipeEntryList[entry] >> 8) & 0x0F;
+
+                OSReport("%d-%d area %d ent %d: %d-%d area %d ent %d\n",
+                         sginfo.world1 + 1, sginfo.level1 + 1, sginfo.area + 1,
+                         sginfo.entrance, sginfo2.world1 + 1,
+                         sginfo2.level1 + 1, sginfo2.area + 1,
+                         sginfo2.entrance);
+            }
         }
     }
 
@@ -180,11 +205,12 @@ private:
 
         if (idx == 0) {
             m_ptrEntList += 1;
+            m_entCount -= 1;
             return;
         }
 
         if (idx == (m_entCount - 1)) {
-            m_entCount--;
+            m_entCount -= 1;
             return;
         }
 
@@ -478,3 +504,9 @@ kmWrite32(0x809191C4, 0x48000018);
 // Skip title screen movies
 kmWrite32(0x80781FB8, 0x60000000);
 kmWrite32(0x80781FBC, 0x38600000);
+
+// Always allow exiting a level
+kmBranchDefCpp(0x800B4E30, 0, bool, void)
+{
+    return true;
+}

@@ -23,6 +23,9 @@
 		<folder external="Code" disc="/Code" create="true"/>
 		<folder external="Stage" disc="/Stage"/>
 		<folder external="StreamCache" disc="/Sound/stream"/>
+		<file external="StreamCache/fix00" disc="/Sound/wii_mj2d_sound.brsar" resize="false" offset="0x47A20" length="0x1"/>
+		<file external="StreamCache/fix01" disc="/Sound/wii_mj2d_sound.brsar" resize="false" offset="0x47A3C" length="0x2"/>
+		<file external="StreamCache/fix02" disc="/Sound/wii_mj2d_sound.brsar" resize="false" offset="0x4ABF0" length="0x4"/>
 
 		<!-- Kamek Loader -->
 		<memory offset="0x80001900" valuefile="Code/loader.bin" />

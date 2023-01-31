@@ -576,7 +576,10 @@ static const u32 PipeEntryList[] = {
   ENT(9, 7, 1, 116), ENT(9, 7, 1, 117), ENT(9, 7, 1, 118), ENT(9, 7, 1, 119),
   ENT(9, 7, 1, 120), ENT(9, 7, 1, 121),
 
+  // This entrance will be skipped if the entry count is an odd number
+  GRP(ENT(2, 20, 2, 1)),
+
   // Skip: 09-08
 };
 
-const u32 PipeEntryCount = sizeof(PipeEntryList) / 4;
+const u32 PipeEntryCount = (sizeof(PipeEntryList) / 4) & ~1;

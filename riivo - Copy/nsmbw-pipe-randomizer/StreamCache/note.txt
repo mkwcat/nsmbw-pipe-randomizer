@@ -1,0 +1,1 @@
+This directory is for redirecting streams from the disc to the SD card to make loading times faster
