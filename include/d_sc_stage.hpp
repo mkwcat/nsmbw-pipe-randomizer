@@ -16,6 +16,7 @@ public:
 
     static u32 m_gameMode;
     static u32 m_exitMode;
+    static u32 m_stageFlag_p;
 
     u8 fill[0x22];
     u8 area;

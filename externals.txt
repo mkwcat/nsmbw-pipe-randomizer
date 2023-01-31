@@ -3,6 +3,7 @@ startGame__7dInfo_cFRCQ27dInfo_c15StartGameInfo_s=0x800BB7D0
 m_isDispOff__10dScCrsin_c=0x8042A490
 getRandom__8dGameComFUl=0x800B2EE0
 getRandomFromSeed__FPUiUi=0x801615A0
+m_stageFlag_p__10dScStage_c=0x8042A260
 m_gameMode__10dScStage_c=0x8042A4E4
 m_exitMode__10dScStage_c=0x8042931C
 changeScene__7dNext_cFv=0x800D01F0

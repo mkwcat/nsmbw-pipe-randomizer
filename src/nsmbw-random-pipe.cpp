@@ -317,6 +317,12 @@ void GoToNewStage(u32 index, dNext_c* next)
     sginfo.world2 = (entData >> 24) & 0xFF;
     sginfo.level2 = (entData >> 16) & 0xFF;
 
+    dScStage_c::m_stageFlag_p &= ~0x40;
+    if (sginfo.level1 == 19) {
+        // Coin Battle stage
+        dScStage_c::m_stageFlag_p |= 0x40;
+    }
+
     dInfo_c::instance()->startGame(sginfo);
 }
 
