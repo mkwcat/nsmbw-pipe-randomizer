@@ -25,53 +25,6 @@ u16 g_entryLookup[PipeEntryCount];
 
 bool g_madeEntryTable = false;
 
-#if 0
-void MakeEntryTable(u32 seed)
-{
-    u16 openEntries[PipeEntryCount];
-
-    for (u32 i = 0; i < PipeEntryCount; i++) {
-        openEntries[i] = i;
-        g_entryLookup[i] = 0;
-    }
-
-    u16* ptrOpenEntries = openEntries;
-
-    for (s32 openEntryCount = PipeEntryCount; openEntryCount > 0;
-         openEntryCount -= 2) {
-        u32 j = getRandomFromSeed(&seed, openEntryCount - 1) + 1;
-
-        g_entryLookup[ptrOpenEntries[0]] = ptrOpenEntries[j];
-        g_entryLookup[ptrOpenEntries[j]] = ptrOpenEntries[0];
-
-        // Remove the entry from the list
-        memmove(ptrOpenEntries + j, ptrOpenEntries + j + 1,
-                (openEntryCount - j - 1) * 2);
-
-        ptrOpenEntries += 1;
-    }
-
-    // Debug print the final boss location
-
-    u32 entry = g_entryLookup[537];
-    dInfo_c::StartGameInfo_s sginfo;
-    sginfo.world1 = (PipeEntryList[entry] >> 24) & 0xFF;
-    sginfo.level1 = (PipeEntryList[entry] >> 16) & 0xFF;
-    sginfo.entrance = PipeEntryList[entry] & 0xFF;
-    sginfo.area = (PipeEntryList[entry] >> 8) & 0x0F;
-    OSReport("final boss 1: %d-%d area %d ent %d\n", sginfo.world1 + 1,
-             sginfo.level1 + 1, sginfo.area + 1, sginfo.entrance);
-
-    entry = g_entryLookup[538];
-    sginfo.world1 = (PipeEntryList[entry] >> 24) & 0xFF;
-    sginfo.level1 = (PipeEntryList[entry] >> 16) & 0xFF;
-    sginfo.entrance = PipeEntryList[entry] & 0xFF;
-    sginfo.area = (PipeEntryList[entry] >> 8) & 0x0F;
-    OSReport("final boss 2: %d-%d area %d ent %d\n", sginfo.world1 + 1,
-             sginfo.level1 + 1, sginfo.area + 1, sginfo.entrance);
-}
-#endif
-
 class EntranceSorter
 {
 public:
@@ -103,36 +56,11 @@ public:
     void CreateLookupTable()
     {
         while (m_entCount > 0) {
-            u32 ent1 = SelectEntrance1();
+            u32 ent1 = SelectEntrance1() & 0x0FFFFFFF;
             u32 ent2 = SelectEntrance2() & 0x0FFFFFFF;
 
-            bool exc = (ent1 >> 28) == 0x3;
-            ent1 &= 0x0FFFFFFF;
             m_entryLookup[ent1] = ent2;
             m_entryLookup[ent2] = ent1;
-
-            if (exc) {
-                dInfo_c::StartGameInfo_s sginfo;
-                dInfo_c::StartGameInfo_s sginfo2;
-
-                u32 entry = ent1;
-                sginfo.world1 = (PipeEntryList[entry] >> 24) & 0xFF;
-                sginfo.level1 = (PipeEntryList[entry] >> 16) & 0xFF;
-                sginfo.entrance = PipeEntryList[entry] & 0xFF;
-                sginfo.area = (PipeEntryList[entry] >> 8) & 0x0F;
-
-                entry = ent2;
-                sginfo2.world1 = (PipeEntryList[entry] >> 24) & 0xFF;
-                sginfo2.level1 = (PipeEntryList[entry] >> 16) & 0xFF;
-                sginfo2.entrance = PipeEntryList[entry] & 0xFF;
-                sginfo2.area = (PipeEntryList[entry] >> 8) & 0x0F;
-
-                OSReport("%d-%d area %d ent %d: %d-%d area %d ent %d\n",
-                         sginfo.world1 + 1, sginfo.level1 + 1, sginfo.area + 1,
-                         sginfo.entrance, sginfo2.world1 + 1,
-                         sginfo2.level1 + 1, sginfo2.area + 1,
-                         sginfo2.entrance);
-            }
         }
     }
 
@@ -291,8 +219,7 @@ void GoToNewStage(u32 index, dNext_c* next)
     default:
         // Temporary
         if (!g_madeEntryTable) {
-            // MakeEntryTable(dGameCom::getRandom(1024));
-            MakeEntryTable(1);
+            MakeEntryTable(dGameCom::getRandom(0x10000));
             g_madeEntryTable = true;
         }
         entry = g_entryLookup[index];
@@ -316,12 +243,6 @@ void GoToNewStage(u32 index, dNext_c* next)
     sginfo.level1 = (entData >> 16) & 0xFF;
     sginfo.world2 = (entData >> 24) & 0xFF;
     sginfo.level2 = (entData >> 16) & 0xFF;
-
-    dScStage_c::m_stageFlag_p &= ~0x40;
-    if (sginfo.level1 == 19) {
-        // Coin Battle stage
-        dScStage_c::m_stageFlag_p |= 0x40;
-    }
 
     dInfo_c::instance()->startGame(sginfo);
 }
@@ -502,6 +423,40 @@ kmBranchDefCpp(0x8005F4CC, 0, void, void)
 
     // Stop P-Switch music
     SndSceneMgr::instance()->stopBgmFlag(8);
+}
+
+// Don't hide Star Coins on Coin Battle stages
+kmCallDefCpp(0x80157EB8, void, u8* layout)
+{
+    if (dInfo_c::m_startGameInfo.level2 == 19) {
+        return;
+    }
+
+    layout[0xBB] &= ~1;
+}
+
+// Show Coin Battle stages properly on pause menu
+extern u32 m_startGameInfo__7dInfo_c;
+
+kmCallDefAsm(0x8015ACC4)
+{
+    // clang-format off
+    nofralloc
+    rlwinm. r0, r0, 0x0, 0x19, 0x19
+    bne L_out
+
+    lis r8, (m_startGameInfo__7dInfo_c + 0xF)@ha
+    lbzu r5, (m_startGameInfo__7dInfo_c + 0xF)@l(r8)
+    cmpwi r5, 19
+    bne L_out
+
+    ori r0, r0, 0x40
+    lbz r4, -1(r8)
+
+L_out:
+    rlwinm. r0, r0, 0x0, 0x19, 0x19
+    blr
+    // clang-format on
 }
 
 // Skip opening cutscene

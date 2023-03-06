@@ -1,1 +1,8 @@
+Kamek\Kamek.exe _build\nsmbw-random-pipe.o -dynamic -versions=address-map.txt -externals=externals.txt -output-kamek=riivo/nsmbw-pipe-randomizer/Code/J1.bin -select-version=J1
+Kamek\Kamek.exe _build\nsmbw-random-pipe.o -dynamic -versions=address-map.txt -externals=externals.txt -output-kamek=riivo/nsmbw-pipe-randomizer/Code/P2.bin -select-version=P2
 Kamek\Kamek.exe _build\nsmbw-random-pipe.o -dynamic -versions=address-map.txt -externals=externals.txt -output-kamek=riivo/nsmbw-pipe-randomizer/Code/E2.bin -select-version=E2
+Kamek\Kamek.exe _build\nsmbw-random-pipe.o -dynamic -versions=address-map.txt -externals=externals.txt -output-kamek=riivo/nsmbw-pipe-randomizer/Code/J2.bin -select-version=J2
+Kamek\Kamek.exe _build\nsmbw-random-pipe.o -dynamic -versions=address-map.txt -externals=externals.txt -output-kamek=riivo/nsmbw-pipe-randomizer/Code/P3.bin -select-version=P3
+Kamek\Kamek.exe _build\nsmbw-random-pipe.o -dynamic -versions=address-map.txt -externals=externals.txt -output-kamek=riivo/nsmbw-pipe-randomizer/Code/J3.bin -select-version=J3
+Kamek\Kamek.exe _build\nsmbw-random-pipe.o -dynamic -versions=address-map.txt -externals=externals.txt -output-kamek=riivo/nsmbw-pipe-randomizer/Code/K.bin -select-version=K
+Kamek\Kamek.exe _build\nsmbw-random-pipe.o -dynamic -versions=address-map.txt -externals=externals.txt -output-kamek=riivo/nsmbw-pipe-randomizer/Code/W.bin -select-version=W

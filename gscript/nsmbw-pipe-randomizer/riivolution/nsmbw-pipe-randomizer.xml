@@ -7,7 +7,7 @@
 		<region type="W"/>
 	</id>
 	<options>
-		<section name="NSMBW Pipe Randomizer">
+		<section name="Pipe Randomizer">
 			<option name="Pipe Randomizer" id="nsmbw-pipe-randomizer" default="1">
 				<choice name="Enabled"><patch id="nsmbw-pipe-randomizer"/></choice>
 			</option>
@@ -22,6 +22,7 @@
 	<patch id="nsmbw-pipe-randomizer">
 		<folder external="Code" disc="/Code" create="true"/>
 		<folder external="Stage" disc="/Stage"/>
+		<folder external="StreamCache" disc="/Sound/stream"/>
 
 		<!-- Kamek Loader -->
 		<memory offset="0x80001900" valuefile="Code/loader.bin" />
