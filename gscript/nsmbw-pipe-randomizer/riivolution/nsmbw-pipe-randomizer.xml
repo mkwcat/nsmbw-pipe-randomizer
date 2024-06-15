@@ -23,6 +23,14 @@
 		<folder external="Code" disc="/Code" create="true"/>
 		<folder external="Stage" disc="/Stage"/>
 		<folder external="StreamCache" disc="/Sound/stream"/>
+		<folder external="WorldMap" disc="/WorldMap"/>
+		<file external="Layout/openingTitle.arc" disc="/CN/Layout/openingTitle/openingTitle.arc"/>
+		<file external="Layout/openingTitle.arc" disc="/EU/Layout/openingTitle/openingTitle.arc"/>
+		<file external="Layout/openingTitle.arc" disc="/JP/Layout/openingTitle/openingTitle.arc"/>
+		<file external="Layout/openingTitle.arc" disc="/KR/Layout/openingTitle/openingTitle.arc"/>
+		<file external="Layout/openingTitle.arc" disc="/TW/Layout/openingTitle/openingTitle.arc"/>
+		<file external="Layout/openingTitle.arc" disc="/US/Layout/openingTitle/openingTitle.arc"/>
+		<file external="seed.txt" disc="/seed.txt" create="true"/>
 
 		<!-- Kamek Loader -->
 		<memory offset="0x80001900" valuefile="Code/loader.bin" />

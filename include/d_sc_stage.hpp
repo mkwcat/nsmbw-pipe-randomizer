@@ -14,6 +14,8 @@ public:
 
     static void setStarCoinState(int coin, int state);
 
+    static u32* getGameDisplay();
+
     static u32 m_gameMode;
     static u32 m_exitMode;
     static u32 m_stageFlag_p;

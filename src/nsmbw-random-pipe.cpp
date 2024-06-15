@@ -1,5 +1,6 @@
 #include "SndSceneMgr.hpp"
 #include "d_actor.hpp"
+#include "d_cs_seq_mgr.hpp"
 #include "d_fader.hpp"
 #include "d_game_com.hpp"
 #include "d_info.hpp"
@@ -10,6 +11,8 @@
 #include "d_sc_stage.hpp"
 #include "d_sc_wmap.hpp"
 #include "d_scene.hpp"
+#include "dvd.h"
+#include "lyt_base.hpp"
 #include "pipe_entry_list.h"
 #include <kamek.h>
 
@@ -20,10 +23,14 @@ enum RandBase {
     RAND_BASE_FILE = 3, // Use seed.txt
 };
 
-RandBase g_randBase = RAND_BASE_BOOT;
+extern RandBase g_randBase;
 u16 g_entryLookup[PipeEntryCount];
-
 bool g_madeEntryTable = false;
+
+// Redirect save file to piperng.sav
+kmWrite32(0x802F148C, 0x70697065);
+kmWrite32(0x802F1490, 0x726E672E);
+kmWrite32(0x802F1494, 0x73617600);
 
 class EntranceSorter
 {
@@ -65,6 +72,7 @@ public:
             m_entryLookup[ent1] = ent2;
             m_entryLookup[ent2] = ent1;
 
+#if 0
             if (exc) {
                 dInfo_c::StartGameInfo_s sginfo;
                 dInfo_c::StartGameInfo_s sginfo2;
@@ -81,11 +89,14 @@ public:
                 sginfo2.entrance = PipeEntryList[entry] & 0xFF;
                 sginfo2.area = (PipeEntryList[entry] >> 8) & 0x0F;
 
-                OSReport("%d-%d area %d ent %d: %d-%d area %d ent %d\n",
-                  sginfo.world1 + 1, sginfo.level1 + 1, sginfo.area + 1,
-                  sginfo.entrance, sginfo2.world1 + 1, sginfo2.level1 + 1,
-                  sginfo2.area + 1, sginfo2.entrance);
+                OSReport(
+                    "%d-%d area %d ent %d: %d-%d area %d ent %d\n",
+                    sginfo.world1 + 1, sginfo.level1 + 1, sginfo.area + 1,
+                    sginfo.entrance, sginfo2.world1 + 1, sginfo2.level1 + 1,
+                    sginfo2.area + 1, sginfo2.entrance
+                );
             }
+#endif
         }
     }
 
@@ -167,8 +178,10 @@ private:
             return;
         }
 
-        memmove(m_ptrEntList + idx, m_ptrEntList + idx + 1,
-          (m_entCount - idx - 1) * sizeof(u32));
+        memmove(
+            m_ptrEntList + idx, m_ptrEntList + idx + 1,
+            (m_entCount - idx - 1) * sizeof(u32)
+        );
         m_entCount -= 1;
     }
 
@@ -212,6 +225,63 @@ void MakeEntryTable(u32 seed)
     sorter.CreateLookupTable();
 }
 
+extern "C" {
+s32 atoi(const char* str);
+}
+
+u16 LoadSeedTxt()
+{
+    s32 entryNum = DVDConvertPathToEntrynum("/seed.txt");
+    if (entryNum == -1) {
+        OSReport("seed.txt not found\n");
+        return 0;
+    }
+
+    DVDFileInfo fileInfo;
+    if (!DVDFastOpen(entryNum, &fileInfo)) {
+        OSReport("Failed to open seed.txt\n");
+        return 0;
+    }
+
+    if (fileInfo.length > 0x7DF) {
+        OSReport("seed.txt is too big\n");
+        DVDClose(&fileInfo);
+        return 0;
+    }
+
+    static char seedDataSym[0x800];
+    memset(seedDataSym, 0, sizeof(seedDataSym));
+    // iirc Kamek doesn't care for symbol alignment
+    char* seedData = (char*) (((u32) seedDataSym + 31) & ~31);
+
+    DVDRead(&fileInfo, seedData, fileInfo.length, 0);
+    DVDClose(&fileInfo);
+
+    // Ignore whitespace characters and lines starting with #
+    char* ptr = seedData;
+    while (*ptr == ' ' || *ptr == '\t' || *ptr == '\n' || *ptr == '\r' ||
+           *ptr == '#') {
+        if (*ptr == '#') {
+            while (*ptr != '\n' && *ptr != '\0') {
+                ptr++;
+            }
+        }
+        ptr++;
+    }
+
+    if (*ptr == '\0') {
+        return 0;
+    }
+
+    u32 value = atoi(ptr);
+    if (value > 0xFFFF) {
+        OSReport("seed.txt value too big\n");
+        return 0;
+    }
+
+    return value;
+}
+
 u32 g_playerStarTimer[4] = {0, 0, 0, 0};
 
 void GoToNewStage(u32 index, dNext_c* next)
@@ -241,8 +311,8 @@ void GoToNewStage(u32 index, dNext_c* next)
     u32 entry = 0;
 
     switch (g_randBase) {
-    default:
-        // Temporary
+    default: // Boot / Course
+        // Not actually done on boot but it's indistinguishable
         if (!g_madeEntryTable) {
             MakeEntryTable(dGameCom::getRandom(0x10000));
             g_madeEntryTable = true;
@@ -252,6 +322,14 @@ void GoToNewStage(u32 index, dNext_c* next)
 
     case RAND_BASE_ALWAYS:
         entry = dGameCom::getRandom(PipeEntryCount);
+        break;
+
+    case RAND_BASE_FILE:
+        if (!g_madeEntryTable) {
+            MakeEntryTable(LoadSeedTxt());
+            g_madeEntryTable = true;
+        }
+        entry = g_entryLookup[index];
         break;
     }
 
@@ -296,17 +374,18 @@ kmBranchDefCpp(0x800D03B8, 0, void, dNext_c* next)
 
 kmCallDefCpp(0x80144D0C, u32, void)
 {
-    if (dScStage_c::m_exitMode == 4)
+    if (dScStage_c::m_exitMode == 4) {
         return 0;
+    }
 
     return dScStage_c::m_exitMode;
 }
 
 kmBranchDefAsm(0x809251D8, 0)
 {
-    // clang-format off
     extern void RestorePlayerInfo();
 
+    // clang-format off
     cmpwi r0, 4
     beqlr
     b RestorePlayerInfo
@@ -357,22 +436,34 @@ kmCallDefCpp(0x80102580, void, int world, int r4, int r5)
 bool SkipNodeOverride(int world, int level)
 {
     // In particular, ambush stages should be skipped
-    if (level == 32 || level == 33 || level == 34)
+    if (level == 32 || level == 33 || level == 34) {
         return true;
+    }
 
     return false;
 }
 
 kmCallDefCpp(0x808DF33C, void, u32 wm)
 {
-    extern void WM_PathInit(u32 wm); // 808E13F0
-    extern u32 WM_GetNodeIDFromName(u32, const char* name,
-      int r5); // 0x800F3380
-    extern bool WM_GetNodeNameFromStage(int world, int level,
-      char* out); // 0x800F9480
+    extern void WM_PathInit(u32 wm); // 0x808E13F0
+    extern u32 WM_GetNodeIDFromName(
+        u32, const char* name,
+        int r5
+    ); // 0x800F3380
+    extern bool WM_GetNodeNameFromStage(
+        int world, int level,
+        char* out
+    ); // 0x800F9480
 
-    if (g_exitedLevel && !SkipNodeOverride(dInfo_c::m_startGameInfo.world2,
-                           dInfo_c::m_startGameInfo.level2)) {
+    // Weird place to put this but it should work
+    if (g_randBase == RAND_BASE_COURSE) {
+        g_madeEntryTable = false;
+    }
+
+    if (g_exitedLevel &&
+        !SkipNodeOverride(
+            dInfo_c::m_startGameInfo.world2, dInfo_c::m_startGameInfo.level2
+        )) {
         dScStage_c* stage = dScStage_c::instance();
 
         g_exitedLevel = false;
@@ -389,7 +480,8 @@ kmCallDefCpp(0x808DF33C, void, u32 wm)
 
         // Override the node chosen on entering the stage
         stage->wmNode = WM_GetNodeIDFromName(
-          wm + *(int*) (wm + 0x338C) * 0x3F08 + 0x5C7F4, name, 13);
+            wm + *(int*) (wm + 0x338C) * 0x3F08 + 0x5C7F4, name, 13
+        );
     }
 
     WM_PathInit(wm);
@@ -409,26 +501,142 @@ kmCallDefCpp(0x808FB584, void, dMj2dGame_c* save)
     save->onWorldDataFlag(8, 1);
 }
 
+// Show all worlds on Star Coin screen
+kmWrite32(0x807749A8, 0x38600001);
+
+// Always show airship on Star Coin screen
+kmWrite32(0x80776B00, 0x38600001);
+
+// Always show final castle in World 8 on Star Coin screen
+kmWrite32(0x80776B3C, 0x38600001);
+
+// If the course is clear then it must be open
+
+extern "C" {
+extern bool IsCourseClear__6dWmLibFii(int world, int stage);
+}
+
+// clang-format off
+kmBranchDefAsm(0x800FA4A4, 0x800FA4A8)
+{
+    ble-    L_End
+
+    mr      r3, r28
+    mr      r4, r20
+    bl      IsCourseClear__6dWmLibFii
+    cmpwi   r3, 0
+    beq-    L_NotClear
+
+    // Branch will not be taken
+    cmpw    r0, r0
+    b       L_End
+
+L_NotClear:
+    // Branch will be taken
+    li      r0, 1
+    cmpwi   r0, 0
+
+L_End:
+    li      r26, 0
+    blr
+}
+
+// clang-format on
+
+extern bool IsWorldCollectionCoinComplete(int world);
+
+// isSpecialWorldCourseOpen__6dWmLibFi
+kmBranchDefCpp(0x800FC580, 0, bool, int stage)
+{
+    if (IsCourseClear__6dWmLibFii(8, stage)) {
+        return true;
+    }
+
+    if (IsWorldCollectionCoinComplete(stage)) {
+        return true;
+    }
+
+    return false;
+}
+
+// Always go to the next world when the castle level is completed
+kmWrite32(0x808CC968, 0x41820050);
+kmWrite32(0x808CC970, 0x41820048);
+kmWrite32(0x808CC9E0, 0x38600001);
+
+// Kick the player out of Peach's Castle
+
+static u32 smc_demo_castle_in_fail[][2] = {
+    {128, 0}, // lock_hud_visibility
+    {114, 0}, // ?
+    {136, 0}, // ?
+    {0, 10}, // wait 10 frames
+    {51, 0}, // set direction to up
+    {19, 0}, // open castle doors
+    {10, 0}, // trigger walking into castle animation
+    {52, 0}, // set direction to down
+    {0, 30}, // wait 30 frames
+    {11, 1}, // trigger castle fail animation
+    {20, 0}, // close castle doors
+    {130, 0}, // ?
+    {115, 0}, // ?
+    {129, 0}, // unlock_hud_visibility
+    {5, 0}, // end script
+};
+// Inject in script 35
+kmWritePointer(0x8031DC58, smc_demo_castle_in_fail);
+
+// Change the script used for entering Peach's Castle
+kmWrite32(0x80904538, 0x38800023);
+
+#if 0
+kmCallDefCpp(0x8090CB10, int, void* obj, int world, int stage)
+{
+    extern int WM_StartStage(void* obj, int world, int stage);
+
+    if (world == 0 && stage == 40) {
+        // dCsSeqMng_c::ms_instance->addScriptToQueue(10, 0, 0, 128);
+
+        // smc_demo_castle_fail
+        dCsSeqMng_c::ms_instance->m_cmdIndex = 0;
+        dCsSeqMng_c::ms_instance->m_script = 10;
+        return 0;
+    }
+
+    return WM_StartStage(obj, world, stage);
+}
+#endif
+
+#ifdef WORLDMAP_DEBUG
+kmBranchDefCpp(0x800FA9D0, 0, int, int world, int stage)
+{
+    OSReport("GetClearStatus(): Check %02d-%02d\n", world + 1, stage + 1);
+    return 1;
+}
+#endif
+
 // Always can save patches
 
 kmWrite32(0x8077AA7C, 0x60000000); // message
 kmWrite32(0x8092FD00, 0x38000002); // button behavior
 
-// Star Coin stuff!
-
+// Save Star Coin stuff!
 kmCallDefCpp(0x80AAA364, void, int coin, int state)
 {
     dScStage_c::setStarCoinState(coin, state);
 
-    if (dInfo_c::m_startGameInfo.purpose != 0)
+    if (dInfo_c::m_startGameInfo.purpose != 0) {
         return;
+    }
 
-    if (state == 4)
+    if (state == 4) {
         return;
+    }
 
     dSaveMng_c::instance()->getMj2dGame(-1)->setCollectCoin(
-      dInfo_c::m_startGameInfo.world2, dInfo_c::m_startGameInfo.level2,
-      1 << coin);
+        dInfo_c::m_startGameInfo.world2, dInfo_c::m_startGameInfo.level2,
+        1 << coin
+    );
 }
 
 kmBranchDefCpp(0x8005F4CC, 0, void, void)
@@ -486,6 +694,81 @@ L_out:
 
 // Hide timer
 // kmWrite32(0x80157E24, 0x60000000);
+
+// Set time display to ---
+kmBranchDefCpp(0x800E3A20, 0, void, void)
+{
+    u32* gameDisplay = dScStage_c::getGameDisplay();
+    LytTextBox_c* timerLyt = (LytTextBox_c*) gameDisplay[0x4E0 / 4];
+
+    timerLyt->setText(L"---", 0);
+}
+
+// Set time to 0
+kmBranchDefCpp(0x800E3A00, 0, void, u8* obj, u32 time)
+{
+    *(u16*) (obj + 0x8) = 0;
+    *(u32*) (obj + 0x4) = 0;
+}
+
+// Stub dGameDisplay_c::executeState_ProcGoalSettleUp to remove the time ->
+// score sound
+kmBranchDefCpp(0x801590B0, 0, void, u8* obj)
+{
+    // TODO: Wait for boss stages so the fanfare doesn't cut off?
+
+    *(u32*) (obj + 0x400) = 0;
+
+    extern u32 StateID_ProcGoalEnd__14dGameDisplay_c;
+
+    (*(void (*)(u8*, u32*)) * (u32*) (*(u32*) (obj + 0x390) + 0x18))(
+        obj + 0x390, &StateID_ProcGoalEnd__14dGameDisplay_c
+    );
+}
+
+// Remove checkpoint flag
+kmWrite32(0x807E215C, 0x60000000);
+
+// Remove Select World layout
+
+// clang-format off
+kmCallDefAsm(0x8001038C)
+{
+    lwz     r5, 0x3A4(r31) // N_guideViewC_00
+    lbz     r4, 0xBB(r5) // is visible flags thing
+    rlwinm  r4, r4, 0, 24, 30
+    stb     r4, 0xBB(r5)
+
+    li      r0, 0x2
+    blr
+}
+
+// clang-format on
+
+kmWrite32(0x80012580, 0x60000000);
+
+#ifndef WORLDMAP_DEBUG
+// Disable pressing minus to select world
+kmWrite32(0x809042C8, 0x48000024);
+
+// Skip loading World Select assets
+kmWrite32(0x8091CDB0, 0x4E800020);
+kmWrite32(0x80926CE4, 0x48000050);
+
+// Remove creating world select managers
+kmWrite32(0x80926E68, 0x38600000);
+kmWrite32(0x80926E80, 0x38600000);
+kmWrite32(0x80926E98, 0x60000000);
+
+// Remove load world select wait
+kmWrite32(0x809270F4, 0x38000001);
+
+// Remove load world select guide wait
+kmWrite32(0x80927100, 0x38000001);
+
+// Skip loading world select islands
+kmWrite32(0x809272DC, 0x48000034);
+#endif
 
 // Skip opening cutscene
 kmWrite32(0x809191C4, 0x48000018);

@@ -1,9 +1,9 @@
 #pragma once
 
-#include <nw4r.h>
+#include <kamek.h>
 
-class LytBase_c
+class LytTextBox_c
 {
 public:
-    void NPaneRegister(const char** names, nw4r::lyt::Pane** panes, int num);
+    void setText(const wchar_t* text, long param_2, ...);
 };
