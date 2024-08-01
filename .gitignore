@@ -1,6 +1,7 @@
 __pycache__
-_build
-Kamek
+build
+Kamek/Kamek.*
+Kamek/cw
 bin
 *.o
 *.o.d
