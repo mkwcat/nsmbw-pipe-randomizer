@@ -47,17 +47,57 @@ public:
         m_entCount = 0;
         m_ptrEntList = m_entList;
 
+        // Add grouped entries to the list first
+        bool inGroup = false;
         for (u32 i = 0; i < PipeEntryCount; i++) {
-            // Write index and copy group flags
-            m_entList[m_entCount++] = i | ((PipeEntryList[i] & 0xF000) << 16);
+            u32 entry = i | ((PipeEntryList[i] & 0xF000) << 16);
+            u8 flags = (entry >> 28);
+            if (!inGroup && flags == 0x0) {
+                continue;
+            }
 
-            // If the entrance is by itself in a group then move it to exclusive
-            if ((m_entList[m_entCount - 1] >> 28) == 0x3) {
+            // Write index and group flags
+            m_entList[m_entCount++] = entry;
+
+            if (flags & 0x2) {
+                inGroup = false;
+            } else if (flags & 0x1) {
+                inGroup = true;
+            } else if (flags & 0x3) {
+                // If the entrance is by itself in a group then move it to
+                // exclusive
                 MoveToExclusive(m_entCount - 1);
             }
 
             m_entryLookup[i] = 0;
         }
+
+        // Add non-grouped entries to the list
+        inGroup = false;
+        u32 lastGroupedEnt = m_entCount;
+        for (u32 i = 0; i < PipeEntryCount; i++) {
+            // Write index and copy group flags
+            u32 entry = i | ((PipeEntryList[i] & 0xF000) << 16);
+            u8 flags = (entry >> 28);
+            if (inGroup || flags != 0x0) {
+                if (flags & 0x2) {
+                    inGroup = false;
+                } else if (flags & 0x1) {
+                    inGroup = true;
+                }
+
+                continue;
+            }
+
+            // Write index
+            m_entList[m_entCount++] = entry;
+        }
+
+        // Reserve a random non-exclusive entrance for the last link
+        u32 idx = lastGroupedEnt +
+                  getRandomFromSeed(&m_seed, m_entCount - lastGroupedEnt);
+        m_lastEntrance = m_entList[idx];
+        Remove(idx);
     }
 
     void CreateLookupTable()
@@ -101,9 +141,6 @@ public:
     }
 
 private:
-    u32 m_curGroupEnd;
-    u32 m_excEntIndex;
-
     u32 SelectEntrance1()
     {
         // Exclusive entrances always go first
@@ -212,8 +249,14 @@ private:
     u32 m_entList[PipeEntryCount];
     u32 m_entCount;
     u32* m_ptrEntList;
+
     u32 m_excEntList[PipeEntryCount];
     u32 m_excEntCount;
+    u32 m_excEntIndex;
+
+    u32 m_curGroupEnd;
+
+    u32 m_lastEntrance;
 
     u16* m_entryLookup;
     u32 m_seed;
@@ -227,6 +270,7 @@ void MakeEntryTable(u32 seed)
 
 extern "C" {
 s32 atoi(const char* str);
+extern int errno;
 }
 
 u16 LoadSeedTxt()
@@ -269,17 +313,18 @@ u16 LoadSeedTxt()
         ptr++;
     }
 
-    if (*ptr == '\0') {
-        return 0;
+    while (*ptr != '\0') {
+        errno = 0;
+        u32 value = u32(atoi(ptr));
+
+        if (errno == 0) {
+            return value;
+        }
+
+        ptr++;
     }
 
-    u32 value = atoi(ptr);
-    if (value > 0xFFFF) {
-        OSReport("seed.txt value too big\n");
-        return 0;
-    }
-
-    return value;
+    return 0;
 }
 
 u32 g_playerStarTimer[4] = {0, 0, 0, 0};
@@ -314,7 +359,10 @@ void GoToNewStage(u32 index, dNext_c* next)
     default: // Boot / Course
         // Not actually done on boot but it's indistinguishable
         if (!g_madeEntryTable) {
-            MakeEntryTable(dGameCom::getRandom(0x10000));
+            MakeEntryTable(
+                dGameCom::getRandom(0x10000) |
+                (dGameCom::getRandom(0x10000) << 16)
+            );
             g_madeEntryTable = true;
         }
         entry = g_entryLookup[index];

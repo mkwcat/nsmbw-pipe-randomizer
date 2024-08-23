@@ -1,3 +1,3 @@
-# A specific RNG seed (between 0 and 65536) to use with the pipe randomizer.
+# A specific RNG seed (between -2147483648 and 2147483647 inclusive) to use with the pipe randomizer.
 # Set the randomizer mode to "Use seed.txt" in Riivolution.
 20746

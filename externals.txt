@@ -51,3 +51,4 @@ DVDReadPrio=0x801CAC60
 atoi=0x802E23F8
 memset=0x800046B4
 g_randBase=0x80004028
+errno=0x8042B2C8
