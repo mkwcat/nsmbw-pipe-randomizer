@@ -16,6 +16,21 @@
 #include "pipe_entry_list.h"
 #include <kamek.h>
 
+extern "C" void OSPanic(const char* file, int line, const char* format, ...);
+
+#ifndef assert
+#  ifdef NDEBUG
+#    define assert(cond) ((void) 0)
+#  else
+#    define assert(cond)                                                       \
+        ((cond) ||                                                             \
+         (OSPanic(                                                             \
+              "nsmbw-random-pipe.cpp", __LINE__, "Failed assertion %s", #cond  \
+          ),                                                                   \
+          0))
+#  endif
+#endif
+
 enum RandBase {
     RAND_BASE_BOOT = 0, // Randomize on starting the game
     RAND_BASE_COURSE = 1, // Randomize on entering a course
@@ -149,6 +164,8 @@ private:
             return m_excEntList[m_excEntIndex++];
         }
 
+        assert(m_entCount > 0);
+
         // Reset exclusive index
         m_excEntIndex = 0;
 
@@ -182,6 +199,14 @@ private:
 
     u32 SelectEntrance2()
     {
+        if (m_entCount == 0) {
+            // No more entrances, return the reserved one
+            int lastEntrance = m_lastEntrance;
+            assert(lastEntrance >= 0);
+            m_lastEntrance = -1;
+            return lastEntrance;
+        }
+
         // Entrance 2 cannot be an exclusive entrance
         u32 i = getRandomFromSeed(&m_seed, m_entCount);
         u32 val = m_ptrEntList[i];
