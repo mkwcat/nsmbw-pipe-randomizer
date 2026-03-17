@@ -11,8 +11,10 @@
 #include "d_sc_stage.hpp"
 #include "d_sc_wmap.hpp"
 #include "d_scene.hpp"
+#include "d_stage.hpp"
 #include "dvd.h"
 #include "lyt_base.hpp"
+#include "m_fader.hpp"
 #include "pipe_entry_list.h"
 #include <kamek.h>
 
@@ -855,3 +857,21 @@ kmBranchDefCpp(0x800B4E30, 0, bool, void)
 {
     return true;
 }
+
+// Fix pointless delay during stage transitions where it waits for a fade in and
+// fade out on a black screen
+static void dScCrsin_c_overrideDispEndCheck(dScCrsin_c* self)
+{
+    if (!dScCrsin_c::m_isDispOff) {
+        return self->executeState_DispEndCheck();
+    }
+
+    // Fast forward fade to opaque
+    mFader_c::mFader->setStatus(mFader_c::OPAQUE);
+    return dStage_c::setNextStage(0, self->mParam);
+}
+
+// Pointer to dScCrsin_c::executeState_DispEndCheck
+kmWritePointer(0x8098C7D0, dScCrsin_c_overrideDispEndCheck);
+// In case sinit already ran
+kmWritePointer(0x809A1E08, dScCrsin_c_overrideDispEndCheck);
