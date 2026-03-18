@@ -18,18 +18,19 @@
 #include "pipe_entry_list.h"
 #include <kamek.h>
 
-extern "C" void OSPanic(const char* file, int line, const char* format, ...);
+extern "C" __attribute__((noreturn)) void
+OSPanic(const char* file, int line, const char* format, ...);
 
 #ifndef assert
 #  ifdef NDEBUG
 #    define assert(cond) ((void) 0)
 #  else
 #    define assert(cond)                                                       \
-        ((cond) ||                                                             \
-         (OSPanic(                                                             \
-              "nsmbw-random-pipe.cpp", __LINE__, "Failed assertion %s", #cond  \
-          ),                                                                   \
-          0))
+        ((void) ((cond) || (OSPanic(                                           \
+                                "nsmbw-random-pipe.cpp", __LINE__,             \
+                                "Failed assertion %s", #cond                   \
+                            ),                                                 \
+                            0)))
 #  endif
 #endif
 

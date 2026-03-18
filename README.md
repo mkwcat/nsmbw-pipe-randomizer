@@ -57,11 +57,6 @@ for installing CodeWarrior. Create a `Kamek/cw` directory in this repo and place
 supplimentary files in there.
 - Run `build.py` in the root of this repo. This file just runs a few commands with CodeWarrior and Kamek to build
 the mod. If successful, it will have built and updated the bin files in `output/nsmbw-pipe-randomizer/Code`.
-  - If you get a license error from the compiler, add the following to the end of CodeWarrior's `license.dat` file:
-  ```
-  INCREMENT Win32_Plugins_PPC_Nintendo metrowks 8.0 permanent uncounted \
-          29D2DA94EDAE HOSTID=ANY TS_OK
-  ```
 
 ## License
 
